@@ -9,11 +9,7 @@ const accesstokenSchema =new  mongoose.Schema({
     },
     accesstoken:{
         type:String,
-        unique:true
     },
-    expiry:{
-        type:Number
-    }
 });
 
 module.exports = mongoose.model("AccessToken",accesstokenSchema);
