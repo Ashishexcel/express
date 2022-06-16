@@ -8,7 +8,8 @@ const useraddressSchema =new  mongoose.Schema({
         refs:'UserSignup',
     },
     address:[{
-
+        type:Array,
+        
         city:{
             type:String
         },

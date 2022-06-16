@@ -4,6 +4,7 @@ const AccessToken = require('../model/accesstokenSchema');
 const md5 = require("md5");
 const Address = require('../model/addressSchema');
 const { default: mongoose } = require("mongoose");
+const jwt = require("jsonwebtoken")
 
 
 // for registration
@@ -41,58 +42,64 @@ const register = async (req,res)=>{
 };
 
 //for login
-// const login =async(req,res)=>{
-//     try {
-//         const {email, password} = req.body;
-//         const finduser = await UserSignup.findOne({email:email}).lean()
-//         if(!finduser) return res.status(500).json({message:"USer not found please login"});
-//         const isMatch = await bcrypt.compare(password,finduser.password);
-//         if(isMatch){
-//             let token = finduser._id
-//             res.header('authorization',token);
-//             res.status(200).json({
-//                 message:"User found",
-//                 data:token
-//             })
-//         }
-//         else{
-//             res.status(500).json({message:"something went wrong"})
-//         }
-//     } catch (error) {
-//         res.status.json({message:"something went wronng"})
-//     }
-// }
-//login and generaating random number;
-const loginandgeneratingnumber =async(req,res)=>{
+const login =async(req,res,next)=>{
+    console.log("enterig here")
     try {
-                const {email, password} = req.body;
-                const finduser = await UserSignup.findOne({email:email}).lean()
-                if(!finduser) return res.status(500).json({message:"USer not found please login"});
-                const isMatch = await bcrypt.compare(password,finduser.password);
-                if(isMatch){
-                    const userid = finduser._id
-                    var today = new Date();
-                    today = (today.getTime()+3600);
-                    const tokendetail= new AccessToken({
-                        userid:userid,
-                        accesstoken:md5(userid),
-                        expiry:today
-                    })
-                    tokendetail.save();
-                    let token = finduser._id
-                    res.header('authorization',tokendetail.accesstoken);
-                    res.status(200).json({
-                        message:"User found",
-                        data:token
-                    })
-                }
-                else{
-                    res.status(500).json({message:"something went wrong"})
-                }
-            } catch (error) {
-                res.status.json({message:"something went wronng"})
-            }
+        const {email, password} = req.body;
+        const finduser = await UserSignup.findOne({email:email}).lean()
+        if(!finduser) return res.status(500).json({message:"USer not found please login"});
+        const isMatch = await bcrypt.compare(password,finduser.password);
+        if(isMatch){
+            const userid = finduser._id;
+            let token = jwt.sign({userid,email},process.env.JWT_ACCESS_TOKEN,{expiresIn:process.env.EXPIRY})
+            const tokengen = new AccessToken({
+                userid:userid,
+                accesstoken:token
+            });
+            tokengen.save();
+            res.header('jwt',tokengen.accesstoken)
+            res.status(201).json({
+                message:"USer found"
+            })
         }
+        else{
+            res.status(500).json({message:"password does not matched please try again"})
+        }
+    } catch (error) {
+        res.status(500).json({message:"something went wronng"})
+    }
+}
+// login and generaating random number;
+// const loginandgeneratingnumber =async(req,res)=>{
+//     try {
+//                 const {email, password} = req.body;
+//                 const finduser = await UserSignup.findOne({email:email}).lean()
+//                 if(!finduser) return res.status(500).json({message:"USer not found please login"});
+//                 const isMatch = await bcrypt.compare(password,finduser.password);
+//                 if(isMatch){
+//                     const userid = finduser._id
+//                     var today = new Date();
+//                     today = (today.getTime()+3600);
+//                     const tokendetail= new AccessToken({
+//                         userid:userid,
+//                         accesstoken:md5(userid),
+//                         expiry:today
+//                     })
+//                     tokendetail.save();
+//                     let token = finduser._id
+//                     res.header('authorization',tokendetail.accesstoken);
+//                     res.status(200).json({
+//                         message:"User found",
+//                         data:token
+//                     })
+//                 }
+//                 else{
+//                     res.status(500).json({message:"something went wrong"})
+//                 }
+//             } catch (error) {
+//                 res.status.json({message:"something went wronng"})
+//             }
+//         }
 
 
 //get user
@@ -148,33 +155,47 @@ const pagination = async(req,res)=>{
 };
 
 //address
-const address = (req,res)=>{
+const address = async(req,res)=>{
     const userid = req.userid
     try {
-        const useraddress = new Address({
-            userid:userid,
-            address:req.body.address
-        });
-        useraddress.save();
-        try {
+        const data = await Address.findOne({userid:userid});
+        if(data){
+            var addaddress = [];
+            for(let i=0;i<data.address.length;i++){
+                addaddress.push(data.address[i]);
+            }
+             addaddress.push(req.body.address);
+            const updated_data = await Address.findOneAndUpdate(
+                {userid:userid},
+                {$set:{address:addaddress}}
+            )
+            res.status(200).json({
+                message:"address added",
+                address:updated_data
+
+            })
+
+        }else{
+            const address = new Address({
+                userid:userid,
+                address:req.body.address
+            });
+            const address_data = await address.save();
             res.status(200).json({
                 message:"address saved",
-                address:useraddress
+
             })
-        } catch (error) {
-            console.log(error);
-            console.log("error aftersaving")
         }
+
     } catch (error) {
-        console.log("error in before doing anything")
+        
     }
+    
 }
 
 const userwithaddress = async(req,res)=>{
     const userdetail = await UserSignup.findOne({_id:req.params.id}).select('firstname lastname email username')
     const useraddress = await Address.findOne({userid:req.params.id});
-
-    
 
     if(!useraddress){
         res.status(500).json({message:"User not found"});
@@ -185,14 +206,13 @@ const userwithaddress = async(req,res)=>{
     })
 }
 
-
 module.exports = {
     register,
-    // login,
+    login,
     getuser,
     deleteuser,
     pagination,
-    loginandgeneratingnumber,
+    // loginandgeneratingnumber,
     address,
     userwithaddress
 };
