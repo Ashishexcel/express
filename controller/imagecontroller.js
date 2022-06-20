@@ -1,15 +1,30 @@
-const image = (req,res)=>{
+const multer = require('multer')
+const upload = require('../utils/cloudinary')
+const onlineuploader = (req,res)=>{
+    
     try {
-        console.log(req.file)
-        if(req.file == null){
-            res.status(500).json({message:"Image not uploaded"})
-        }
-        else{
-            res.status(201).json({message:"image upload successfully"})
-        }
-    } catch (error) {
+
+        upload.single('image')
+        res.status(200).json({message:"image uploaded "})
+
         
+    } catch (error) {
+     res.status(500).json({
+         message:"internal server error"
+     })   
     }
+
 }
 
-module.exports = image;
+const image = (req,res)=>{
+    try {
+        res.status(201).json({
+            message:"Image uploaded to folder"
+        })
+    } catch (error) {
+        res.status(500).json({
+            message:"Internal server error"
+        })
+    }
+}
+module.exports = {onlineuploader,image};

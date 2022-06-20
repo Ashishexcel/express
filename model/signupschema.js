@@ -2,10 +2,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt')
 
 const signupschema = new mongoose.Schema({
-    _id:{
-        type:mongoose.Schema.Types.ObjectId
-    },
-    
     firstname:{
         type:String,
         required:true
@@ -37,5 +33,24 @@ const signupschema = new mongoose.Schema({
     },
 
 });
+
+signupschema.methods.matchPassword = async function(password){{
+    try {
+        return await bcrypt.compare(password,this.password)
+    } catch (error) {
+        throw new Error(error)
+    }
+}};
+signupschema.pre('save',async function(next){
+    try {
+        const user = this;
+        const salt = await bcrypt.genSalt(10);
+        const hashedpassword = await bcrypt.hash(this.password,salt);
+        this.password = hashedpassword;
+        next();
+    } catch (error) {
+        return next(error)
+    }
+})
 
 module.exports = mongoose.model("UserSignup",signupschema);

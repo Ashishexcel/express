@@ -4,54 +4,69 @@ const AccessToken = require('../model/accesstokenSchema');
 const md5 = require("md5");
 const Address = require('../model/addressSchema');
 const { default: mongoose } = require("mongoose");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const passport = require('passport')
+const TokenExpiredError = require("jsonwebtoken/lib/TokenExpiredError");
 
 
-// for registration
-const register = async (req,res)=>{
-    try {
-        const salt = await bcrypt.genSalt();
-        const hashedpassword = await bcrypt.hash(req.body.password,salt)
-        const newuser = new UserSignup({
-            _id:new mongoose.Types.ObjectId(),
-            firstname:req.body.firstname,
-            lastname:req.body.lastname,
-            username:req.body.username,
-            email:req.body.email,
-            password:req.body.password,
-            confirmpassword:req.body.confirmpassword
-        });
+// for registration simple method
+// const register = async (req,res)=>{
+//     try {
+//         const salt = await bcrypt.genSalt();
+//         const hashedpassword = await bcrypt.hash(req.body.password,salt)
+//         const newuser = new UserSignup({
+//           
+//             firstname:req.body.firstname,
+//             lastname:req.body.lastname,
+//             username:req.body.username,
+//             email:req.body.email,
+//             password:req.body.password,
+//             confirmpassword:req.body.confirmpassword
+//         });
 
-        if(newuser.password!=newuser.confirmpassword)return res.status(500).json({message:"password does not matched"})
+//         if(newuser.password!=newuser.confirmpassword)return res.status(500).json({message:"password does not matched"})
 
-        newuser.password = hashedpassword;
-        newuser.confirmpassword = hashedpassword;
+//         newuser.password = hashedpassword;
+//         newuser.confirmpassword = hashedpassword;
     
-        newuser.save((err,doc)=>{
-            if(err) res.status(500).json({message:"Not saved"})
-            res.status(200).json({
-                message:"Data saved",
-                userdetail:doc
-            })
-        })
+//         newuser.save((err,doc)=>{
+//             if(err) res.status(500).json({message:"Not saved"})
+//             res.status(200).json({
+//                 message:"Data saved",
+//                 userdetail:doc
+//             })
+//         })
 
-    } catch (error) {
-        console.log(error);
-        res.status(500).send("internal server error")
-    }
-};
-
-//for login
-const login =async(req,res,next)=>{
-    console.log("enterig here")
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).send("internal server error")
+//     }
+// };
+//registration with passport
+const signupwithpassport = (req,res,next)=>{
     try {
-        const {email, password} = req.body;
-        const finduser = await UserSignup.findOne({email:email}).lean()
-        if(!finduser) return res.status(500).json({message:"USer not found please login"});
-        const isMatch = await bcrypt.compare(password,finduser.password);
-        if(isMatch){
-            const userid = finduser._id;
-            let token = jwt.sign({userid,email},process.env.JWT_ACCESS_TOKEN,{expiresIn:process.env.EXPIRY})
+        const newUser = req.newUser
+        res.status(201).json({
+            message:"New user added",
+            userdetail:newUser
+        })
+    } catch (error) {
+        res.status(500).json({
+            message:"something went wrong",
+            error:error,
+            errormessage:error.message
+        })
+    }
+}
+
+//login with passport and JWT
+const loginwithpassport = (req,res,next)=>{
+    try {
+        passport.authenticate('local')
+        const user = req.user //geting data of user here
+        const userid = user._id;
+        const useremail = user.email
+        let token = jwt.sign({userid,useremail},process.env.JWT_ACCESS_TOKEN,{expiresIn:process.env.EXPIRY})
             const tokengen = new AccessToken({
                 userid:userid,
                 accesstoken:token
@@ -59,16 +74,49 @@ const login =async(req,res,next)=>{
             tokengen.save();
             res.header('jwt',tokengen.accesstoken)
             res.status(201).json({
-                message:"USer found"
+                message:"user found and token generated"
             })
-        }
-        else{
-            res.status(500).json({message:"password does not matched please try again"})
-        }
     } catch (error) {
-        res.status(500).json({message:"something went wronng"})
+        console.log(error);
+        res.status(403).json({
+            message:error.message
+        })
     }
 }
+
+
+
+
+
+//for login  implement JWT
+
+// const login =async(req,res,next)=>{
+//     console.log("enterig here")
+//     try {
+//         const {email, password} = req.body;
+//         const finduser = await UserSignup.findOne({email:email}).lean()
+//         if(!finduser) return res.status(500).json({message:"USer not found please login"});
+//         const isMatch = await bcrypt.compare(password,finduser.password);
+//         if(isMatch){
+//             const userid = finduser._id;
+//             let token = jwt.sign({userid,email},process.env.JWT_ACCESS_TOKEN,{expiresIn:process.env.EXPIRY})
+//             const tokengen = new AccessToken({
+//                 userid:userid,
+//                 accesstoken:token
+//             });
+//             tokengen.save();
+//             res.header('jwt',tokengen.accesstoken)
+//             res.status(201).json({
+//                 message:"USer found"
+//             })
+//         }
+//         else{
+//             res.status(500).json({message:"password does not matched please try again"})
+//         }
+//     } catch (error) {
+//         res.status(500).json({message:"something went wronng"})
+//     }
+// }
 // login and generaating random number;
 // const loginandgeneratingnumber =async(req,res)=>{
 //     try {
@@ -166,9 +214,11 @@ const address = async(req,res)=>{
             }
              addaddress.push(req.body.address);
             const updated_data = await Address.findOneAndUpdate(
+            
                 {userid:userid},
                 {$set:{address:addaddress}}
             )
+            console.log(updated_data)
             res.status(200).json({
                 message:"address added",
                 address:updated_data
@@ -177,42 +227,58 @@ const address = async(req,res)=>{
 
         }else{
             const address = new Address({
+                _id:mongoose.Types.ObjectId(),
                 userid:userid,
                 address:req.body.address
             });
             const address_data = await address.save();
             res.status(200).json({
                 message:"address saved",
+                address:"first time adddress saveed",
+                addressdetail:address_data
 
             })
         }
 
     } catch (error) {
-        
+        console.log(error);
+        res.status(500).json({message:error.message})
     }
     
 }
 
 const userwithaddress = async(req,res)=>{
-    const userdetail = await UserSignup.findOne({_id:req.params.id}).select('firstname lastname email username')
-    const useraddress = await Address.findOne({userid:req.params.id});
+    // const userdetail = await UserSignup.findOne({_id:req.params.id}).select('firstname lastname email username')
+    const useraddress = await Address.findOne({userid:req.params.id}).populate({populate:'UserSignup'})
 
     if(!useraddress){
         res.status(500).json({message:"User not found"});
     }
     res.status(200).json({
-        userdetail:userdetail,
+        // userdetail:userdetail,
         useraddress:useraddress
     })
 }
 
+//deleting address
+const deleteaddress = async(req,res)=>{
+    const userid = req.userid
+    const useraddressdetail  =await Address.findOne({userid:userid})
+    console.log(useraddressdetail.address)
+}
+
+
 module.exports = {
-    register,
-    login,
+    // register,,
+    signupwithpassport,
+    // login,,
+    loginwithpassport,
     getuser,
     deleteuser,
     pagination,
     // loginandgeneratingnumber,
     address,
-    userwithaddress
+    userwithaddress,
+    deleteaddress
+    
 };
