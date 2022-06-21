@@ -5,6 +5,7 @@ const LocalStrategy =require('passport-local');
 
 const initializelogin=(passport,getUSerByID)=>{
     const authenticateUser =async(email,password,done)=>{
+        console.log(email)
         
         const user = await UserSignup.findOne({email:email});
         if(!user){

@@ -1,69 +1,100 @@
 const bcrypt = require("bcrypt");
 const UserSignup = require('../model/signupschema')
 const AccessToken = require('../model/accesstokenSchema'); 
-const md5 = require("md5");
+
 const Address = require('../model/addressSchema');
 const { default: mongoose } = require("mongoose");
 const jwt = require("jsonwebtoken");
 const passport = require('passport')
 const TokenExpiredError = require("jsonwebtoken/lib/TokenExpiredError");
-
+const nodemailer = require('nodemailer')
+const transporter = require('../utils/nodeMailer')
 
 // for registration simple method
-// const register = async (req,res)=>{
-//     try {
-//         const salt = await bcrypt.genSalt();
-//         const hashedpassword = await bcrypt.hash(req.body.password,salt)
-//         const newuser = new UserSignup({
-//           
-//             firstname:req.body.firstname,
-//             lastname:req.body.lastname,
-//             username:req.body.username,
-//             email:req.body.email,
-//             password:req.body.password,
-//             confirmpassword:req.body.confirmpassword
-//         });
 
-//         if(newuser.password!=newuser.confirmpassword)return res.status(500).json({message:"password does not matched"})
+const register = async (req,res)=>{
+    var mailOptions = {
+        from: 'ashishjobworkmail@gmail.com',
+        to: 'ashishjobworkmail@gmail.com',
+        subject: 'thankyou for registring',
+        text: 'you are now registered!'
+      };
+    try {
+        const salt = await bcrypt.genSalt();
+        const hashedpassword = await bcrypt.hash(req.body.password,salt)
+        const newuser = new UserSignup({
+          
+            firstname:req.body.firstname,
+            lastname:req.body.lastname,
+            username:req.body.username,
+            email:req.body.email,
+            password:req.body.password,
+            confirmpassword:req.body.confirmpassword
+        });
 
-//         newuser.password = hashedpassword;
-//         newuser.confirmpassword = hashedpassword;
+        if(newuser.password!=newuser.confirmpassword)return res.status(500).json({message:"password does not matched"})
+
+        newuser.password = hashedpassword;
+        newuser.confirmpassword = hashedpassword;
     
-//         newuser.save((err,doc)=>{
-//             if(err) res.status(500).json({message:"Not saved"})
-//             res.status(200).json({
-//                 message:"Data saved",
-//                 userdetail:doc
-//             })
+        newuser.save((err,doc)=>{
+            if(err) res.status(500).json({message:"Not saved"})
+            res.status(200).json({
+                message:"Data saved",
+                userdetail:doc
+            })
+        })
+        transporter.sendMail(mailOptions, function(error, info){
+                        if (error) {
+                          console.log(error);
+                        } else {
+                          console.log('Email sent: ' + info.response);
+                        }   
+                      });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("internal server error")
+    }
+};
+//registration with passport
+
+//node mailer
+  
+  
+  
+
+// //
+// const signupwithpassport = (req,res,next)=>{
+//     try {
+//         console.log("am in signup")
+//         const newUser = req.newUser
+//         transporter.sendMail(mailOptions, function(error, info){
+//             if (error) {
+//               console.log(error);
+//             } else {
+//               console.log('Email sent: ' + info.response);
+//             }
+//           });
+//         res.status(201).json({
+//             message:"New user added",
+//             userdetail:newUser
 //         })
 
 //     } catch (error) {
-//         console.log(error);
-//         res.status(500).send("internal server error")
+//         res.status(500).json({
+//             message:"something went wrong",
+//             error:error,
+//             errormessage:error.message
+//         })
 //     }
-// };
-//registration with passport
-const signupwithpassport = (req,res,next)=>{
-    try {
-        const newUser = req.newUser
-        res.status(201).json({
-            message:"New user added",
-            userdetail:newUser
-        })
-    } catch (error) {
-        res.status(500).json({
-            message:"something went wrong",
-            error:error,
-            errormessage:error.message
-        })
-    }
-}
+// }
 
 //login with passport and JWT
 const loginwithpassport = (req,res,next)=>{
     try {
         passport.authenticate('local')
-        const user = req.user //geting data of user here
+        const user = req.user //geting data of user here //from passport
         const userid = user._id;
         const useremail = user.email
         let token = jwt.sign({userid,useremail},process.env.JWT_ACCESS_TOKEN,{expiresIn:process.env.EXPIRY})
@@ -73,8 +104,9 @@ const loginwithpassport = (req,res,next)=>{
             });
             tokengen.save();
             res.header('jwt',tokengen.accesstoken)
+
             res.status(201).json({
-                message:"user found and token generated"
+                message:"user found and token generated..."
             })
     } catch (error) {
         console.log(error);
@@ -204,7 +236,7 @@ const pagination = async(req,res)=>{
 
 //address
 const address = async(req,res)=>{
-    const userid = req.userid
+    const userid = req.userid //fetching userid from the verifywithjwt token
     try {
         const data = await Address.findOne({userid:userid});
         if(data){
@@ -231,7 +263,9 @@ const address = async(req,res)=>{
                 userid:userid,
                 address:req.body.address
             });
+
             const address_data = await address.save();
+
             res.status(200).json({
                 message:"address saved",
                 address:"first time adddress saveed",
@@ -240,6 +274,7 @@ const address = async(req,res)=>{
             })
         }
 
+        
     } catch (error) {
         console.log(error);
         res.status(500).json({message:error.message})
@@ -248,17 +283,18 @@ const address = async(req,res)=>{
 }
 
 const userwithaddress = async(req,res)=>{
-    // const userdetail = await UserSignup.findOne({_id:req.params.id}).select('firstname lastname email username')
-    const useraddress = await Address.findOne({userid:req.params.id}).populate({populate:'UserSignup'})
+    console.log("in userwith address")
+    // const userdetail = await UserSignup.findOne({_id:req.params.id}).select('firstname lastname email username').populate('Address')
+    // const useraddress = await Address.findOne({userid:req.params.id}).populate({populate:'UserSignup'})
 
     if(!useraddress){
         res.status(500).json({message:"User not found"});
     }
     res.status(200).json({
         // userdetail:userdetail,
-        useraddress:useraddress
+        useraddress:userdetail
     })
-}
+}   
 
 //deleting address
 const deleteaddress = async(req,res)=>{
@@ -269,8 +305,8 @@ const deleteaddress = async(req,res)=>{
 
 
 module.exports = {
-    // register,,
-    signupwithpassport,
+    register,
+    // signupwithpassport,
     // login,,
     loginwithpassport,
     getuser,

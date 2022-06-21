@@ -4,53 +4,56 @@ const bcrypt = require('bcrypt')
 const signupschema = new mongoose.Schema({
     firstname:{
         type:String,
-        required:true
+        // required:true
     },
     lastname:{
         type:String,
-        required:true
+        // required:true
     },
     username:{
         type:String,
-        required:true,
-        unique:true
+        // required:true,
+        // unique:true
     },
     email:{
         type:String,
-        required:true,
-        unique:true,
-        trim:true,
+        // required:true,
+        // unique:true,
+        // trim:true,
     },
     password:{
         type:String,
-        required:true,
-        minlength:8
+        // required:true,
+        // minlength:8
     },
     confirmpassword:{
         type:String,
-        required:true,
-        minlength:8
+        // required:true,
+        // minlength:8
     },
-
+    address:[{
+        type:mongoose.Schema.Types.ObjectId,
+        refs:'Address'
+    }]
 });
 
-signupschema.methods.matchPassword = async function(password){{
-    try {
-        return await bcrypt.compare(password,this.password)
-    } catch (error) {
-        throw new Error(error)
-    }
-}};
-signupschema.pre('save',async function(next){
-    try {
-        const user = this;
-        const salt = await bcrypt.genSalt(10);
-        const hashedpassword = await bcrypt.hash(this.password,salt);
-        this.password = hashedpassword;
-        next();
-    } catch (error) {
-        return next(error)
-    }
-})
+// signupschema.methods.matchPassword = async function(password){{
+//     try {
+//         return await bcrypt.compare(password,this.password)
+//     } catch (error) {
+//         throw new Error(error)
+//     }
+// }};
+// signupschema.pre('save',async function(next){
+//     try {
+//         const user = this;
+//         const salt = await bcrypt.genSalt(10);
+//         const hashedpassword = await bcrypt.hash(this.password,salt);
+//         this.password = hashedpassword;
+//         next();
+//     } catch (error) {
+//         return next(error)
+//     }
+// })
 
 module.exports = mongoose.model("UserSignup",signupschema);

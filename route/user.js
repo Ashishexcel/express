@@ -24,24 +24,25 @@ const folderupload = require('../utils/multer')
 
 
 //passport config
-// const {initializelogin,initializesignup} = require('../passport/passportConfig');
-const initializesignup = require('../passport/passportsignup');
+const {initializesignup} = require('../passport/passportConfig');
+// const initializesignup = require('../passport/passportsignup');
 const initializelogin = require('../passport/passportlogin')
 
 
 
 //controller
-const {signupwithpassport,getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress}= require('../controller/usercontroller');
+const {getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress,register}= require('../controller/usercontroller');
+const {fgproute,verifypasswordreset} = require('../controller/forgotpassword')
 
 
 
 
 //login reg routes
-// router.post('/registration',register);
 initializesignup(passport,async(id)=>{
     await UserSignup.find({_id:id})
 })
-router.post('/registration', passport.authenticate('local'),signupwithpassport)
+router.post('/registration',register);
+// router.post('/registration', passport.authenticate('local'),signupwithpassport)
 
 // router.post('/login',login);
 
@@ -71,6 +72,9 @@ router.delete('/address',verifywithjwt,deleteaddress)
 
 router.post('/profile-image',folderupload.single('productImage'),image);
 
-router.post('/online-storage',onlineuploader)
+router.post('/online-storage',onlineuploader);
+
+router.get('/forgot-password',verifywithjwt,fgproute);
+router.put('/verify-reset-password/:passwordreset',verifywithjwt,verifypasswordreset)
 
 module.exports = router;
