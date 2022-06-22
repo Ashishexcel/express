@@ -3,10 +3,10 @@ const router = express.Router();
 const UserSignup = require('../model/signupschema');
 const bcrypt = require('bcrypt');
 
+
 const passport = require('passport');
 
-
-
+//
 
 //token middleware
 const verifytoken = require('../middleware/verify');
@@ -24,30 +24,35 @@ const folderupload = require('../utils/multer')
 
 
 //passport config
-const {initializesignup} = require('../passport/passportConfig');
-// const initializesignup = require('../passport/passportsignup');
+const LocalStrategy = require('passport-local').Strategy; 
+
+passport.serializeUser(UserSignup.serializeUser()); 
+passport.deserializeUser(UserSignup.deserializeUser());
+const authwithpassportsignup = require('../passport/passportsignup');
+passport.use(new LocalStrategy(UserSignup.authenticate()));
+const registerwithpassport = require('../controller/registration')
 const initializelogin = require('../passport/passportlogin')
 
 
 
 //controller
-const {getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress,register}= require('../controller/usercontroller');
+const {getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress}= require('../controller/usercontroller');
 const {fgproute,verifypasswordreset} = require('../controller/forgotpassword')
 
 
 
 
 //login reg routes
-initializesignup(passport,async(id)=>{
-    await UserSignup.find({_id:id})
+authwithpassportsignup(passport,async(id)=>{
+    await UserSignup.findById(id)
 })
-router.post('/registration',register);
-// router.post('/registration', passport.authenticate('local'),signupwithpassport)
+// router.post('/registration',register);
+router.post('/registration', registerwithpassport)
 
 // router.post('/login',login);
 
 initializelogin(passport,(id)=>{UserSignup.find({_id:id})})
-router.post('/login',passport.authenticate('local'),loginwithpassport);
+router.post('/login',passport.authenticate('local'),loginwithpassport); 
 
 
 
@@ -75,6 +80,6 @@ router.post('/profile-image',folderupload.single('productImage'),image);
 router.post('/online-storage',onlineuploader);
 
 router.get('/forgot-password',verifywithjwt,fgproute);
-router.put('/verify-reset-password/:passwordreset',verifywithjwt,verifypasswordreset)
+router.put('/verify-reset-password/:passwordreset',verifywithjwt,verifypasswordreset);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
+const passportlocalmongose = require('passport-local-mongoose')
 
 const signupschema = new mongoose.Schema({
     firstname:{
@@ -33,7 +34,7 @@ const signupschema = new mongoose.Schema({
     },
     address:[{
         type:mongoose.Schema.Types.ObjectId,
-        refs:'Address'
+        ref:'Address'
     }]
 });
 
@@ -55,5 +56,5 @@ const signupschema = new mongoose.Schema({
 //         return next(error)
 //     }
 // })
-
+signupschema.plugin(passportlocalmongose)
 module.exports = mongoose.model("UserSignup",signupschema);

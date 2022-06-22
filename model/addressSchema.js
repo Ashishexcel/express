@@ -5,12 +5,9 @@ const UserSignup = require('../model/signupschema')
 const useraddressSchema =new  mongoose.Schema({
     userid:{
         type:mongoose.Schema.Types.ObjectId,
-        refs:'UserSignup',
+        ref:'UserSignup',
     },
-    address:[{
-        _id:{
-            type:mongoose.Schema.Types.ObjectId
-        },
+    
         city:{
             type:String
         },
@@ -24,7 +21,7 @@ const useraddressSchema =new  mongoose.Schema({
             type:Number,
             minlength:[10,"number must be of 10 digits"]
             }
-        }]
+    
 })
 
 module.exports = mongoose.model('Address',useraddressSchema);

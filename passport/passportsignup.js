@@ -3,10 +3,11 @@ const bcrypt = require('bcrypt');
 const UserSignup = require('../model/signupschema');
 const LocalStrategy =require('passport-local');
 
-const initializesignup = (passport,getUSerByID)=>{
-    const registerUser = async(req,username,password,done)=>{
-        const user   = await UserSignup.findOne({email:req.body.email})
-        
+const authwithpassportsignup = (passport,getUSerByID)=>{
+    const registerUser = async(req,email,password,done)=>{
+        console.log(email+ "this is email")
+        const user   = await UserSignup.findOne({email:email})
+
         if(user){
             return done(null,false,{message:"user already exist please login"}) //this is not showing mean this error is not showing only shows authorize
         }
@@ -18,8 +19,8 @@ const initializesignup = (passport,getUSerByID)=>{
             var newUser = new UserSignup({
                 firstname:req.body.firstname,
                 lastname:req.body.lastname,
-                username:username,
-                email:req.body.email,
+                username:req.body.username,
+                email:email,
                 password:hashedpassword,
                 confirmpassword:hashedpassword
             })
@@ -30,9 +31,10 @@ const initializesignup = (passport,getUSerByID)=>{
             })
         }
     }
-    passport.use(new LocalStrategy({usernameField:'username',passwordField:'password',passReqToCallback:true},registerUser))
-    passport.serializeUser((user,done)=>{done (null,user._id)})
-    passport.deserializeUser((id,done)=>{return done(null,getUSerByID(id))})
+    passport.use(new LocalStrategy({usernameField:'email',passwordField:'password',passReqToCallback:true},registerUser))
+    passport.serializeUser((user,done)=>{
+        done (null,user._id)})
+    passport.deserializeUser((id,done)=>{return done(null,getUSerByID(id))});
 }
 
-module.exports = initializesignup;
+module.exports = authwithpassportsignup;
