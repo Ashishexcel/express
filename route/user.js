@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 
 const passport = require('passport');
 
+
 //
 
 //token middleware
@@ -39,7 +40,8 @@ const initializelogin = require('../passport/passportlogin')
 const {getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress}= require('../controller/usercontroller');
 const {fgproute,verifypasswordreset} = require('../controller/forgotpassword')
 
-
+//scraping controller
+const {flipscrap,snapscrap,flipscrapdetail} = require('../controller/scrap')
 
 
 //login reg routes
@@ -81,5 +83,12 @@ router.post('/online-storage',onlineuploader);
 
 router.get('/forgot-password',verifywithjwt,fgproute);
 router.put('/verify-reset-password/:passwordreset',verifywithjwt,verifypasswordreset);
+
+
+router.get('/fetch/flipkart/mobile',flipscrap);
+
+router.get('/fetch/snapdeal/t-shirt',snapscrap);    
+router.get('/fetch/flipkart/mobile/full',flipscrapdetail);
+
 
 module.exports = router;
