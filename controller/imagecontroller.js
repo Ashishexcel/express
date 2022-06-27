@@ -1,13 +1,12 @@
 const multer = require('multer')
 const upload = require('../utils/cloudinary')
+
+
 const onlineuploader = (req,res)=>{
-    
     try {
 
         upload.single('image')
-        res.status(200).json({message:"image uploaded "})
-
-        
+        res.status(200).json({message:"image uploaded "}) 
     } catch (error) {
      res.status(500).json({
          message:"internal server error"

@@ -1,6 +1,6 @@
 const passport = require('passport');
 const bcrypt = require('bcrypt');
-const UserSignup = require('../model/signupschema');
+const UserSignup = require('../model');
 const LocalStrategy =require('passport-local');
 
 const authwithpassportsignup = (passport,getUSerByID)=>{

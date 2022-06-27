@@ -1,17 +1,13 @@
-const UserSignup = require('../model/signupschema')
+const {UserSignup} = require('../model')
+const dotenv = require('dotenv').config();
 const bcrypt = require('bcrypt');
 const { hash } = require('bcrypt');
-const nodemailer = require('nodemailer')
 const transporter = require('../utils/nodeMailer')
 const registerwithpassport = async(req, res,next) =>{       
-    var mailOptions = {
-                from: 'ashishjobworkmail@gmail.com',
-                to: 'ashishjobworkmail@gmail.com',
-                subject: 'thankyou for registring',
-                text: 'you are now registered!'
-              };
+    
     if(req.body.password ==req.body.confirmpassword){
         const hashedpassword = await bcrypt.hash(req.body.password,10);
+        
 
         const Users=new UserSignup({email: req.body.email, 
         username : req.body.username,
@@ -20,11 +16,15 @@ const registerwithpassport = async(req, res,next) =>{
         password:hashedpassword,
         confirmpassword:hashedpassword
     });
-        await Users.save((err,user)=>{
-
-
+         Users.save((err,user)=>{
             if(err){console.log(err)}
             else{
+              var mailOptions = {
+                from: process.env.USERAUTHFORSENDINGMAIL,
+                to: user.email,
+                subject: 'thankyou for registring',
+                text: 'you are now registered!'
+              };
 
                 transporter.sendMail(mailOptions, function(error, info){
                                             if (error) {
@@ -33,25 +33,15 @@ const registerwithpassport = async(req, res,next) =>{
                                               console.log('Email sent: ' + info.response);
                                             }   
                                           });
-                res.json({success: true, message: "Your account has been saved"})
+                res.json({success: true, 
+                  message: "Your account has been saved",
+                mail_message:"please check your email address for verification"
+                })
             }
         })
     }
         
         
-        // UserSignup.register(Users, function(err, user) { 
-
-        //     if (err) { 
-
-        //       res.json({success:false, message:"Your account could not be saved. Error: ", err}) 
-
-        //     }else{ 
-
-        //       res.json({success: true, message: "Your account has been saved"}) 
-
-        //     } 
-
-        //   }); 
 
 }
 

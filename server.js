@@ -5,7 +5,7 @@ const connection = require("./db");
 const session = require('express-session')
 const LocalStrategy = require('passport-local')
 const passport = require('passport')
-//routes
+//importing routes
 const userroute = require('./route/user')
 
 app.use(express.json());
@@ -15,12 +15,14 @@ app.use(session({
     resave:false,
     saveUninitialized:false
 }))
+
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-
+//calling routes
 app.use('/user',userroute);
+
 
 app.listen(process.env.PORT,()=>{
     console.log(`server started ${process.env.PORT}`)

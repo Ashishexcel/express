@@ -10,6 +10,7 @@ const verifywithjwt = (req,res,next)=>{
             }
             else{
                 req.userid = decodedToken.userid
+                req.useremail = decodedToken.useremail
                 console.log("you are authenticated")
                 next()
             }

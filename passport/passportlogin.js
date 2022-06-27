@@ -1,6 +1,6 @@
 const passport = require('passport');
 const bcrypt = require('bcrypt');
-const UserSignup = require('../model/signupschema');
+const {UserSignup} = require('../model');
 const LocalStrategy =require('passport-local');
 
 const initializelogin=(passport,getUSerByID)=>{
@@ -8,18 +8,19 @@ const initializelogin=(passport,getUSerByID)=>{
         console.log("aksjbcja")
         
         const user = await UserSignup.findOne({email:email});
+    
         if(!user){
             return done(null,false,{message:"incorrect emaill"})
         }
-    
         if(user==null){return done(null,false,{message:"USer not found"})}
         try {
             const isMatch = await bcrypt.compare(password,user.password);
+            
             if(isMatch){
-                
+                console.log("before sending user")
                 return done(null,user)
             }else{
-                return done(null,password,{message:"password not matched"})
+                return done(null,false,{message:"password not matched"})
             }
             
         } catch (error) {

@@ -1,35 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const UserSignup = require('../model/signupschema');
-const bcrypt = require('bcrypt');
 
+//models
+const {UserSignup} = require('../model');
 
 const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy; 
+//this is for registration
+passport.serializeUser(UserSignup.serializeUser()); 
+passport.deserializeUser(UserSignup.deserializeUser());
 
-
-//
 
 //token middleware
-const verifytoken = require('../middleware/verify');
-const verifywithtoken = require('../middleware/verifywithtoken');
-const verifywithjwt = require('../middleware/verifywithjwt')
+// const verifytoken = require('../middleware/verify');
+const verifywithjwt = require('../middleware/verifywithjwt') //using this one with jwt
+
 
 //image controller
-// const {image,onlineimage} = require('../controller/imagecontroller');
 const upload = require('../utils/cloudinary');
 const {onlineuploader,image} = require('../controller/imagecontroller')
 const folderupload = require('../utils/multer')
 
-
-
-
-
 //passport config
-const LocalStrategy = require('passport-local').Strategy; 
-
-passport.serializeUser(UserSignup.serializeUser()); 
-passport.deserializeUser(UserSignup.deserializeUser());
-const authwithpassportsignup = require('../passport/passportsignup');
+// const authwithpassportsignup = require('../passport/passportsignup');
 passport.use(new LocalStrategy(UserSignup.authenticate()));
 const registerwithpassport = require('../controller/registration')
 const initializelogin = require('../passport/passportlogin')
@@ -38,6 +31,8 @@ const initializelogin = require('../passport/passportlogin')
 
 //controller
 const {getuser,deleteuser,pagination,loginwithpassport,address,userwithaddress,deleteaddress}= require('../controller/usercontroller');
+
+//controller for password forgot
 const {fgproute,verifypasswordreset} = require('../controller/forgotpassword')
 
 //scraping controller
@@ -45,31 +40,26 @@ const {flipscrap,snapscrap,flipscrapdetail} = require('../controller/scrap')
 
 
 //login reg routes
-authwithpassportsignup(passport,async(id)=>{
-    await UserSignup.findById(id)
-})
-// router.post('/registration',register);
-router.post('/registration', registerwithpassport)
+// authwithpassportsignup(passport,async(id)=>{
+//     await UserSignup.findById(id)
+// })
 
-// router.post('/login',login);
+
+//routes for reg and login
+router.post('/registration', registerwithpassport)
 
 initializelogin(passport,(id)=>{UserSignup.find({_id:id})})
 router.post('/login',passport.authenticate('local'),loginwithpassport); 
 
 
 
-
-
-
-
-
 //other routes
 
-router.get('/get',verifytoken,getuser);
+router.get('/get',verifywithjwt,getuser);
 
-router.put('/delete',verifytoken,deleteuser);
+router.put('/delete',verifywithjwt ,deleteuser);
 
-router.get('/list/:page',pagination);
+router.get('/list/:page/:size',pagination);
 
 router.post('/address',verifywithjwt,address)
 
@@ -77,11 +67,12 @@ router.get('/get/:id',verifywithjwt,userwithaddress)
 
 router.delete('/address',verifywithjwt,deleteaddress)
 
-router.post('/profile-image',folderupload.single('productImage'),image);
+router.post('/profile-image',folderupload.single('productImage'),image); 
 
 router.post('/online-storage',onlineuploader);
 
 router.get('/forgot-password',verifywithjwt,fgproute);
+
 router.put('/verify-reset-password/:passwordreset',verifywithjwt,verifypasswordreset);
 
 
